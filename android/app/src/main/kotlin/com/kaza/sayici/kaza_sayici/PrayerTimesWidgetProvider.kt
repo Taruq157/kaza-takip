@@ -30,15 +30,39 @@ class PrayerTimesWidgetProvider : HomeWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
 
+                val isDark = widgetData.getBoolean("widget_is_dark", true)
                 val locationName = widgetData.getString("widget_location_name", "Kocaeli, Gölcük") ?: "Kocaeli, Gölcük"
                 val currentPrayer = widgetData.getString("widget_current_prayer", "Şu an: Öğle Vakti") ?: "Şu an: Öğle Vakti"
                 val countdownTitle = widgetData.getString("widget_countdown_title", "İkindi'ye Kalan") ?: "İkindi'ye Kalan"
                 val countdownTime = widgetData.getString("widget_countdown_time", "01:13:00") ?: "01:13:00"
+                val activeEmoji = widgetData.getString("active_prayer_emoji", "🕌") ?: "🕌"
 
+                views.setTextViewText(R.id.widget_prayer_emoji, activeEmoji)
                 views.setTextViewText(R.id.widget_location_name, locationName)
                 views.setTextViewText(R.id.widget_current_prayer, currentPrayer)
                 views.setTextViewText(R.id.widget_countdown_title, countdownTitle)
                 views.setTextViewText(R.id.widget_countdown_time, countdownTime)
+
+                // Theme styling
+                if (isDark) {
+                    views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_dark)
+                    views.setInt(R.id.layout_icon, "setBackgroundResource", R.drawable.widget_pill_bg_dark)
+                    views.setInt(R.id.layout_countdown, "setBackgroundResource", R.drawable.widget_pill_bg_dark)
+                    views.setInt(R.id.widget_divider, "setBackgroundColor", 0xFF1E293B.toInt())
+                    views.setTextColor(R.id.widget_location_name, 0xFFFFFFFF.toInt())
+                    views.setTextColor(R.id.widget_current_prayer, 0xFF10B981.toInt())
+                    views.setTextColor(R.id.widget_countdown_title, 0xFF94A3B8.toInt())
+                    views.setTextColor(R.id.widget_countdown_time, 0xFFFFFFFF.toInt())
+                } else {
+                    views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_light)
+                    views.setInt(R.id.layout_icon, "setBackgroundResource", R.drawable.widget_pill_bg_light)
+                    views.setInt(R.id.layout_countdown, "setBackgroundResource", R.drawable.widget_pill_bg_light)
+                    views.setInt(R.id.widget_divider, "setBackgroundColor", 0xFFE2E8F0.toInt())
+                    views.setTextColor(R.id.widget_location_name, 0xFF0F172A.toInt())
+                    views.setTextColor(R.id.widget_current_prayer, 0xFF059669.toInt())
+                    views.setTextColor(R.id.widget_countdown_title, 0xFF64748B.toInt())
+                    views.setTextColor(R.id.widget_countdown_time, 0xFF0F172A.toInt())
+                }
 
                 val timeImsak = widgetData.getString("time_imsak", "04:52") ?: "04:52"
                 val timeGunes = widgetData.getString("time_gunes", "06:21") ?: "06:21"
@@ -59,6 +83,25 @@ class PrayerTimesWidgetProvider : HomeWidgetProvider() {
                 views.setTextViewText(R.id.time_aksam_active, timeAksam)
                 views.setTextViewText(R.id.time_yatsi, timeYatsi)
                 views.setTextViewText(R.id.time_yatsi_active, timeYatsi)
+
+                val inactiveBg = if (isDark) R.drawable.widget_badge_inactive_dark else R.drawable.widget_badge_inactive_light
+                val inactiveLabelColor = if (isDark) 0xFF94A3B8.toInt() else 0xFF64748B.toInt()
+                val inactiveTimeColor = if (isDark) 0xFFF8FAFC.toInt() else 0xFF1E293B.toInt()
+
+                val boxList = listOf(
+                    Triple(R.id.box_imsak_inactive, R.id.label_imsak, R.id.time_imsak),
+                    Triple(R.id.box_gunes_inactive, R.id.label_gunes, R.id.time_gunes),
+                    Triple(R.id.box_ogle_inactive, R.id.label_ogle, R.id.time_ogle),
+                    Triple(R.id.box_ikindi_inactive, R.id.label_ikindi, R.id.time_ikindi),
+                    Triple(R.id.box_aksam_inactive, R.id.label_aksam, R.id.time_aksam),
+                    Triple(R.id.box_yatsi_inactive, R.id.label_yatsi, R.id.time_yatsi)
+                )
+
+                for ((boxId, labelId, timeId) in boxList) {
+                    views.setInt(boxId, "setBackgroundResource", inactiveBg)
+                    views.setTextColor(labelId, inactiveLabelColor)
+                    views.setTextColor(timeId, inactiveTimeColor)
+                }
 
                 val activeKey = widgetData.getString("active_vakit_key", "ogle") ?: "ogle"
 

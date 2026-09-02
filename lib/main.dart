@@ -82,10 +82,29 @@ class KazaSayiciApp extends StatefulWidget {
 class _KazaSayiciAppState extends State<KazaSayiciApp> {
   bool _isDarkMode = true;
 
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final savedDark = prefs.getBool('is_dark_theme');
+      if (savedDark != null && savedDark != _isDarkMode) {
+        setState(() {
+          _isDarkMode = savedDark;
+        });
+        WidgetService.updateAllWidgets(isDark: savedDark);
+      }
     });
+  }
+
+  void _toggleTheme() {
+    final nextDark = !_isDarkMode;
+    setState(() {
+      _isDarkMode = nextDark;
+    });
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('is_dark_theme', nextDark);
+    });
+    WidgetService.updateAllWidgets(isDark: nextDark);
   }
 
   @override

@@ -32,6 +32,7 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.layout_info, pendingIntent)
                 views.setOnClickPendingIntent(R.id.layout_icon, pendingIntent)
 
+                val isDark = widgetData.getBoolean("widget_is_dark", true)
                 val activePrayerName = widgetData.getString("active_prayer_name", "Öğle") ?: "Öğle"
                 val activePrayerSubtitle = widgetData.getString("active_prayer_subtitle", "4 Rekât Farz • Kaza Takipçisi") ?: "4 Rekât Farz • Kaza Takipçisi"
                 val activeEmoji = widgetData.getString("active_prayer_emoji", "☀️") ?: "☀️"
@@ -41,14 +42,25 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
                 views.setTextViewText(R.id.widget_active_prayer_name, activePrayerName)
                 views.setTextViewText(R.id.widget_prayer_emoji, activeEmoji)
 
+                // Theme styling
+                if (isDark) {
+                    views.setInt(R.id.widget_tick_container, "setBackgroundResource", R.drawable.widget_bg_dark)
+                    views.setInt(R.id.layout_icon, "setBackgroundResource", R.drawable.widget_pill_bg_dark)
+                    views.setTextColor(R.id.widget_active_prayer_name, 0xFFFFFFFF.toInt())
+                } else {
+                    views.setInt(R.id.widget_tick_container, "setBackgroundResource", R.drawable.widget_bg_light)
+                    views.setInt(R.id.layout_icon, "setBackgroundResource", R.drawable.widget_pill_bg_light)
+                    views.setTextColor(R.id.widget_active_prayer_name, 0xFF0F172A.toInt())
+                }
+
                 if (isTicked) {
                     views.setTextViewText(R.id.widget_active_prayer_status, "Bugün Kılındı ✓")
-                    views.setTextColor(R.id.widget_active_prayer_status, 0xFF10B981.toInt())
+                    views.setTextColor(R.id.widget_active_prayer_status, if (isDark) 0xFF10B981.toInt() else 0xFF059669.toInt())
                     views.setImageViewResource(R.id.btn_toggle_tick, R.drawable.ic_tick_checked)
                 } else {
                     views.setTextViewText(R.id.widget_active_prayer_status, activePrayerSubtitle)
-                    views.setTextColor(R.id.widget_active_prayer_status, 0xFF94A3B8.toInt())
-                    views.setImageViewResource(R.id.btn_toggle_tick, R.drawable.ic_tick_unchecked)
+                    views.setTextColor(R.id.widget_active_prayer_status, if (isDark) 0xFF94A3B8.toInt() else 0xFF64748B.toInt())
+                    views.setImageViewResource(R.id.btn_toggle_tick, if (isDark) R.drawable.ic_tick_unchecked_dark else R.drawable.ic_tick_unchecked_light)
                 }
 
                 val backgroundIntent = HomeWidgetBackgroundIntent.getBroadcast(

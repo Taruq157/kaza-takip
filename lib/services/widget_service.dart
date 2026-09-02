@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:home_widget/home_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'daily_tracker_service.dart';
 import 'prayer_time_service.dart';
 
@@ -70,8 +71,11 @@ class WidgetService {
   static Future<void> updateAllWidgets({
     PrayerDisplayInfo? prayerInfo,
     Map<String, bool>? ticks,
+    bool? isDark,
   }) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final isDarkMode = isDark ?? prefs.getBool('is_dark_theme') ?? true;
       final info = prayerInfo ?? PrayerTimeService.calculatePrayerTimes();
       final todayTicks = ticks ?? await DailyTrackerService.getTodayTicks();
 
@@ -96,6 +100,9 @@ class WidgetService {
         if (item.key == 'aksam') timeAksam = item.timeString;
         if (item.key == 'yatsi') timeYatsi = item.timeString;
       }
+
+      // Save theme mode
+      await HomeWidget.saveWidgetData<bool>('widget_is_dark', isDarkMode);
 
       // 1. Data for 4x2 Prayer Times Widget
       await HomeWidget.saveWidgetData<String>('widget_location_name', PrayerTimeService.locationName);
