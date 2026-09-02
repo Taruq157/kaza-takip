@@ -44,13 +44,11 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
                 if (isTicked) {
                     views.setTextViewText(R.id.widget_active_prayer_status, "Bugün Kılındı ✓")
                     views.setTextColor(R.id.widget_active_prayer_status, 0xFF10B981.toInt())
-                    views.setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_on)
-                    views.setTextViewText(R.id.widget_tick_text, "✓")
+                    views.setImageViewResource(R.id.btn_toggle_tick, R.drawable.ic_tick_checked)
                 } else {
                     views.setTextViewText(R.id.widget_active_prayer_status, activePrayerSubtitle)
                     views.setTextColor(R.id.widget_active_prayer_status, 0xFF94A3B8.toInt())
-                    views.setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_off)
-                    views.setTextViewText(R.id.widget_tick_text, "")
+                    views.setImageViewResource(R.id.btn_toggle_tick, R.drawable.ic_tick_unchecked)
                 }
 
                 val backgroundIntent = HomeWidgetBackgroundIntent.getBroadcast(
@@ -60,7 +58,7 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.btn_toggle_tick, backgroundIntent)
 
                 appWidgetManager.updateAppWidget(appWidgetId, views)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 e.printStackTrace()
             }
         }
