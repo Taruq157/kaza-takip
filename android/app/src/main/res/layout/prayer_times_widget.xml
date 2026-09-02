@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_bg">
+
+    <!-- Üst Bölüm: Konum & Geri Sayım -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Sol: Şehir ve Vakit -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_location_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Konum Belirleniyor..."
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_current_prayer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Şu an: Vakit Hesaplanıyor"
+                android:textColor="#10B981"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Sağ: Geri Sayım Rozeti -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/widget_countdown_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kalan Süre"
+                android:textColor="#94A3B8"
+                android:textSize="9.5sp" />
+
+            <TextView
+                android:id="@+id/widget_countdown_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00:00"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Ayırıcı Boşluk -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#1E293B" />
+
+    <!-- Alt Bölüm: 6 Vakit Çizelgesi -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- İmsak -->
+        <LinearLayout
+            android:id="@+id/box_imsak"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_inactive"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_imsak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="İmsak"
+                android:textColor="#94A3B8"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/time_imsak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="04:50"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Güneş -->
+        <LinearLayout
+            android:id="@+id/box_gunes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_inactive"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_gunes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Güneş"
+                android:textColor="#94A3B8"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/time_gunes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="06:20"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Öğle -->
+        <LinearLayout
+            android:id="@+id/box_ogle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_active"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_ogle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Öğle"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/time_ogle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="13:05"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- İkindi -->
+        <LinearLayout
+            android:id="@+id/box_ikindi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_inactive"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_ikindi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="İkindi"
+                android:textColor="#94A3B8"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/time_ikindi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="17:40"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Akşam -->
+        <LinearLayout
+            android:id="@+id/box_aksam"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_inactive"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_aksam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Akşam"
+                android:textColor="#94A3B8"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/time_aksam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="19:40"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Yatsı -->
+        <LinearLayout
+            android:id="@+id/box_yatsi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="1.5dp"
+            android:background="@drawable/widget_badge_inactive"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:id="@+id/label_yatsi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Yatsı"
+                android:textColor="#94A3B8"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/time_yatsi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="21:05"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

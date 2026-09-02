@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/daily_tracker_service.dart';
 import 'services/prayer_time_service.dart';
+import 'services/widget_service.dart';
 import 'widgets/kaza_calculator_sheet.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -15,6 +16,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await initializeDateFormatting('tr_TR', null);
+  } catch (_) {}
+  try {
+    await WidgetService.initialize();
+    await WidgetService.updateAllWidgets();
   } catch (_) {}
   runApp(const KazaSayiciApp());
 }
@@ -254,6 +259,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     await _checkDailyTransition();
+    await WidgetService.updateAllWidgets(prayerInfo: _prayerDisplayInfo, ticks: _todayTicks);
   }
 
   void _updatePrayerTimes() {
@@ -274,6 +280,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _isRefreshingLocation = false;
         _updatePrayerTimes();
       });
+      WidgetService.updateAllWidgets(prayerInfo: _prayerDisplayInfo, ticks: _todayTicks);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -380,6 +387,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       SoundService.playNamazTikGeri();
     }
     await DailyTrackerService.setTodayTick(key, newVal);
+    WidgetService.updateAllWidgets(prayerInfo: _prayerDisplayInfo, ticks: _todayTicks);
 
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();

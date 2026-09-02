@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prayer_times_widget_desc">Canlı Namaz Vakitleri ve Kalan Süre Takibi</string>
+    <string name="current_prayer_tick_widget_desc">Anlık Namaz Vakti ve Hızlı Tikleme</string>
+</resources>
