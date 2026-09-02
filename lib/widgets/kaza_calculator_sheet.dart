@@ -93,11 +93,20 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
     );
   }
 
+  static const _turkishMonths = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+  ];
+
+  String _formatDateTurkish(DateTime date) {
+    return '${date.day} ${_turkishMonths[date.month - 1]} ${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final result = _result;
-    final dateFormat = DateFormat('dd MMMM yyyy', 'tr_TR');
+    final formattedDate = _formatDateTurkish(_bulugDate);
 
     return Container(
       decoration: BoxDecoration(
@@ -203,7 +212,7 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            dateFormat.format(_bulugDate),
+                            formattedDate,
                             style: GoogleFonts.outfit(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

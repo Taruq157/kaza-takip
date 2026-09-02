@@ -9,8 +9,13 @@ import 'services/daily_tracker_service.dart';
 import 'services/prayer_time_service.dart';
 import 'widgets/kaza_calculator_sheet.dart';
 
-void main() {
+import 'package:intl/date_symbol_data_local.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await initializeDateFormatting('tr_TR', null);
+  } catch (_) {}
   runApp(const KazaSayiciApp());
 }
 
