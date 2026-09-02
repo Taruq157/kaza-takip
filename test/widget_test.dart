@@ -14,7 +14,7 @@ void main() {
     await tester.pumpWidget(const KazaSayiciApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Kaza & Vakit Takipçisi'), findsWidgets);
+    expect(find.text('Kaza Takipçisi'), findsWidgets);
     expect(find.text('Sabah'), findsWidgets);
     expect(find.text('Öğle'), findsWidgets);
     expect(find.text('İkindi'), findsWidgets);

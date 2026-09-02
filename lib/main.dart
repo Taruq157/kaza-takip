@@ -61,7 +61,7 @@ class _KazaSayiciAppState extends State<KazaSayiciApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kaza Namazı Takipçisi',
+      title: 'Kaza Takipçisi',
       debugShowCheckedModeBanner: false,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
@@ -182,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   final Map<String, TextEditingController> _controllers = {};
   bool _isLoading = true;
+  bool _isRefreshingLocation = false;
   bool _soundMuted = false;
 
   Timer? _tickerTimer;
@@ -234,6 +235,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {
       _prayerDisplayInfo = PrayerTimeService.calculatePrayerTimes();
     });
+  }
+
+  Future<void> _refreshLocation() async {
+    if (_isRefreshingLocation) return;
+    setState(() {
+      _isRefreshingLocation = true;
+    });
+    HapticFeedback.lightImpact();
+    await PrayerTimeService.initLocation();
+    if (mounted) {
+      setState(() {
+        _isRefreshingLocation = false;
+        _updatePrayerTimes();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Konum güncellendi: ${PrayerTimeService.locationName}')),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1E293B),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   Future<void> _checkDailyTransition() async {
@@ -297,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _toggleDailyTick(String key) async {
+  Future<void> _toggleDailyTick(String key, String title) async {
     HapticFeedback.lightImpact();
     final currentVal = _todayTicks[key] ?? false;
     final newVal = !currentVal;
@@ -309,20 +340,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     SoundService.playPop(isUp: newVal, isSpecial: newVal);
     await DailyTrackerService.setTodayTick(key, newVal);
 
-    if (mounted && newVal) {
+    if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 20),
+              Icon(
+                newVal ? Icons.check_circle_rounded : Icons.info_outline,
+                color: newVal ? Colors.greenAccent : Colors.orangeAccent,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Bugünkü ${key.toUpperCase()} namazı kılındı olarak işaretlendi.'),
+              Text(
+                newVal
+                    ? 'Bugünkü $title namazı kılındı olarak işaretlendi.'
+                    : 'Bugünkü $title namazı işareti kaldırıldı.',
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF1E293B),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(milliseconds: 1500),
+          duration: const Duration(milliseconds: 1400),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
@@ -491,20 +530,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Modern App Bar
-          SliverAppBar.large(
-            expandedHeight: 120,
-            floating: false,
+          // Modern Compact App Bar
+          SliverAppBar(
+            floating: true,
             pinned: true,
+            elevation: 0,
             backgroundColor: isDark ? const Color(0xFF0B1329) : Colors.white,
             surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            title: Text(
-              'Kaza & Vakit Takipçisi',
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.mosque_rounded,
+                    color: Color(0xFF10B981),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Kaza Takipçisi',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             actions: [
               IconButton(
@@ -531,15 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   } else if (value == 'add_day') {
                     _addFullDay();
                   } else if (value == 'refresh_location') {
-                    PrayerTimeService.initLocation().then((_) {
-                      _updatePrayerTimes();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Konum güncellendi: ${PrayerTimeService.locationName}'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    });
+                    _refreshLocation();
                   }
                 },
                 itemBuilder: (ctx) => [
@@ -576,17 +624,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
             ],
           ),
 
-          // 1. Canlı Namaz Vakitleri & Geri Sayım Kartı
+          // 1. Canlı Namaz Vakitleri & Konum Kutusu (Yenileme Butonlu)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: _LivePrayerTimesCard(
                 info: displayInfo,
                 isDark: isDark,
+                isRefreshing: _isRefreshingLocation,
+                onRefreshLocation: _refreshLocation,
               ),
             ),
           ),
@@ -596,7 +646,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
@@ -605,12 +655,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF0F766E).withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -630,73 +680,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               '$_totalKazalar Vakit',
                               style: GoogleFonts.outfit(
                                 color: Colors.white,
-                                fontSize: 28,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            shape: BoxShape.circle,
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
-                            Icons.mosque_rounded,
-                            color: Colors.white,
-                            size: 28,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.timer_outlined, color: Colors.white70, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                _durationEstimate,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.timer_outlined, color: Colors.white70, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _durationEstimate,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: _completeFullDay,
-                        icon: const Icon(Icons.done_all_rounded, size: 20),
+                        icon: const Icon(Icons.done_all_rounded, size: 18),
                         label: const Text(
                           '1 Günlük Kazayı Kıldım (-1 Vakit Hepsi)',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF0F766E),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 2,
+                          elevation: 1,
                         ),
                       ),
                     ),
@@ -706,14 +742,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // 3. Günlük Bilgilendirme Rozeti (02:00 Kuralı)
+          // 3. Bilgilendirme Rozeti (02:00 Kuralı)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B).withOpacity(0.7) : const Color(0xFFF1F5F9),
+                  color: isDark ? const Color(0xFF1E293B).withOpacity(0.6) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
@@ -722,13 +758,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.nightlight_round, color: Color(0xFFF59E0B), size: 18),
-                    const SizedBox(width: 10),
+                    const Icon(Icons.nightlight_round, color: Color(0xFFF59E0B), size: 16),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Bugün kılınanları yanındaki tikten işaretleyin. Gece 02:00\'de işaretlenmeyenler otomatik kazaya eklenir.',
+                        'Bugün kılınanları sağ üstteki tikten işaretleyin. Gece 02:00\'de kılınmayanlar otomatik kazaya eklenir.',
                         style: TextStyle(
                           fontSize: 11.5,
+                          height: 1.3,
                           fontWeight: FontWeight.w500,
                           color: isDark ? Colors.grey[300] : Colors.grey[700],
                         ),
@@ -740,27 +777,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // Section Title
+          // Başlık
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 6),
               child: Row(
                 children: [
                   Text(
-                    'GÜNLÜK VE KAZA LİSTESİ',
+                    'VAKİTLER VE KAZA LİSTESİ',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.1,
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                   const Spacer(),
                   Text(
-                    'Tik: Bugün | Kaza Sayacı',
+                    'Tik: Bugün Kılındı',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? Colors.grey[500] : Colors.grey[500],
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF10B981),
                     ),
                   ),
                 ],
@@ -768,7 +806,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // 4. Prayer Cards List
+          // 4. Yenilenen Kusursuz Prayer Cards List
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             sliver: SliverList(
@@ -785,7 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     isTicked: isTicked,
                     controller: controller,
                     isDark: isDark,
-                    onToggleTick: () => _toggleDailyTick(prayer.key),
+                    onToggleTick: () => _toggleDailyTick(prayer.key, prayer.title),
                     onIncrement: () => _updateCount(prayer.key, 1),
                     onDecrement: () => _updateCount(prayer.key, -1),
                     onChanged: (val) {
@@ -809,23 +847,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 }
 
-/// Canlı Namaz Vakitleri, Konum ve Geri Sayım Kartı
+/// Canlı Namaz Vakitleri, Konum ve Geri Sayım Kartı (Konum Yenile Butonu ile)
 class _LivePrayerTimesCard extends StatelessWidget {
   final PrayerDisplayInfo info;
   final bool isDark;
+  final bool isRefreshing;
+  final VoidCallback onRefreshLocation;
 
   const _LivePrayerTimesCard({
     required this.info,
     required this.isDark,
+    required this.isRefreshing,
+    required this.onRefreshLocation,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131D38) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isDark ? const Color(0xFF263556) : const Color(0xFFE2E8F0),
           width: 1.2,
@@ -841,7 +883,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Konum ve Canlı Durum Başlığı
+          // Konum Başlığı ve Yenile Butonu
           Row(
             children: [
               Container(
@@ -856,20 +898,46 @@ class _LivePrayerTimesCard extends StatelessWidget {
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      info.locationName,
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            info.locationName,
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // Konum Yenile Butonu
+                        InkWell(
+                          onTap: isRefreshing ? null : onRefreshLocation,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: isRefreshing
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Icon(
+                                    Icons.refresh_rounded,
+                                    size: 16,
+                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       'Şu an: ${info.currentPrayerTitle}',
@@ -884,10 +952,10 @@ class _LivePrayerTimesCard extends StatelessWidget {
               ),
               // Geri Sayım Rozeti
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: const Color(0xFF10B981).withOpacity(0.4),
                     width: 1,
@@ -899,7 +967,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
                     Text(
                       '${info.nextPrayerTitle}\'e Kalan',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w500,
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
                       ),
@@ -907,7 +975,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
                     Text(
                       info.timeRemainingString,
                       style: GoogleFonts.spaceMono(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         letterSpacing: 0.5,
@@ -919,7 +987,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Vakit İlerleme Çubuğu
           ClipRRect(
@@ -932,7 +1000,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Vakitler Yatay Çizelgesi (İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı)
           SingleChildScrollView(
@@ -940,13 +1008,13 @@ class _LivePrayerTimesCard extends StatelessWidget {
             child: Row(
               children: info.timeline.map((vakit) {
                 return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                   decoration: BoxDecoration(
                     color: vakit.isCurrent
                         ? const Color(0xFF10B981)
                         : (isDark ? const Color(0xFF1A2644) : const Color(0xFFF1F5F9)),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: vakit.isCurrent
                           ? const Color(0xFF10B981)
@@ -959,7 +1027,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
                       Text(
                         vakit.name,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: vakit.isCurrent ? FontWeight.bold : FontWeight.w500,
                           color: vakit.isCurrent
                               ? Colors.white
@@ -970,7 +1038,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
                       Text(
                         vakit.timeString,
                         style: GoogleFonts.outfit(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.bold,
                           color: vakit.isCurrent
                               ? Colors.white
@@ -989,6 +1057,7 @@ class _LivePrayerTimesCard extends StatelessWidget {
   }
 }
 
+/// Yenilenen Kusursuz Düzenli Prayer Card (Sağ Üstte Günlük Tik Butonu)
 class _PrayerCard extends StatelessWidget {
   final PrayerInfo prayer;
   final int count;
@@ -1025,104 +1094,146 @@ class _PrayerCard extends StatelessWidget {
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isTicked ? const Color(0xFF10B981).withOpacity(0.6) : borderColor,
+          color: isTicked ? const Color(0xFF10B981).withOpacity(0.7) : borderColor,
           width: isTicked ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            color: isTicked
+                ? const Color(0xFF10B981).withOpacity(isDark ? 0.15 : 0.08)
+                : Colors.black.withOpacity(isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+        padding: const EdgeInsets.all(14.0),
         child: Column(
           children: [
+            // 1. ÜST SATIR: Vakit Başlığı (Sol) + Günlük Namaz Tiki (Sağ Üst - Kırmızı İşaretli Yer)
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 1. Günlük Tik Kutusu (Bugün Kılındı Butonu)
-                InkWell(
-                  onTap: onToggleTick,
-                  borderRadius: BorderRadius.circular(16),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isTicked
-                          ? const Color(0xFF10B981)
-                          : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isTicked
-                            ? const Color(0xFF10B981)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                        width: 1.2,
+                // Sol: Vakit İkonu + Başlık + Rekât Bilgisi
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: prayer.accentColor.withOpacity(isDark ? 0.18 : 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        prayer.icon,
+                        color: prayer.accentColor,
+                        size: 22,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          isTicked ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                          color: isTicked ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
                         Text(
-                          isTicked ? 'Kılındı' : 'Bugün',
+                          prayer.title,
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          prayer.subtitle,
                           style: TextStyle(
                             fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: isTicked ? Colors.white : (isDark ? Colors.grey[300] : Colors.grey[700]),
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
 
-                const SizedBox(width: 10),
-
-                // 2. Vakit İkonu & Başlığı
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: prayer.accentColor.withOpacity(isDark ? 0.15 : 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    prayer.icon,
-                    color: prayer.accentColor,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        prayer.title,
-                        style: GoogleFonts.outfit(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
+                // Sağ Üst: Günlük Namaz Tiki (Bugün yazısı kaldırıldı, tam daire estetik tik butonu)
+                InkWell(
+                  onTap: onToggleTick,
+                  borderRadius: BorderRadius.circular(20),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isTicked
+                          ? const Color(0xFF10B981)
+                          : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isTicked
+                            ? const Color(0xFF10B981)
+                            : (isDark ? const Color(0xFF3B4D71) : const Color(0xFFCBD5E1)),
+                        width: 1.5,
                       ),
-                      Text(
-                        prayer.subtitle,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                      ),
-                    ],
+                      boxShadow: isTicked
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : [],
+                    ),
+                    child: Icon(
+                      isTicked ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+                      color: isTicked ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                      size: 22,
+                    ),
                   ),
                 ),
+              ],
+            ),
 
-                // 3. Kaza Kontrolleri: [-] [ Sayı ] [+]
+            const SizedBox(height: 12),
+
+            // Ayırıcı çizgi
+            Divider(
+              height: 1,
+              thickness: 0.8,
+              color: isDark ? const Color(0xFF1E2B4B) : const Color(0xFFF1F5F9),
+            ),
+
+            const SizedBox(height: 10),
+
+            // 2. ALT SATIR: Hızlı Kaza Ekleme Çipleri (Sol) + Kaza Sayaç Kontrolleri [-] [0] [+] (Sağ)
+            Row(
+              children: [
+                // Sol: Hızlı Kaza Ekleme (+5, +10, +30)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _QuickChip(
+                      label: '+5',
+                      onTap: () => onQuickAdd(5),
+                      isDark: isDark,
+                    ),
+                    const SizedBox(width: 5),
+                    _QuickChip(
+                      label: '+10',
+                      onTap: () => onQuickAdd(10),
+                      isDark: isDark,
+                    ),
+                    const SizedBox(width: 5),
+                    _QuickChip(
+                      label: '+30',
+                      onTap: () => onQuickAdd(30),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+
+                const Spacer(),
+
+                // Sağ: [-] [ Sayı ] [+]
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1133,17 +1244,17 @@ class _PrayerCard extends StatelessWidget {
                       isDark: isDark,
                       tooltip: '1 Kaza Azalt',
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Container(
-                      width: 68,
-                      height: 44,
+                      width: 70,
+                      height: 42,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF0B1329) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: prayer.accentColor.withOpacity(0.4),
-                          width: 1.5,
+                          color: isDark ? const Color(0xFF2E3E66) : const Color(0xFFCBD5E1),
+                          width: 1.2,
                         ),
                       ),
                       child: TextField(
@@ -1151,7 +1262,7 @@ class _PrayerCard extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
@@ -1167,7 +1278,7 @@ class _PrayerCard extends StatelessWidget {
                         onChanged: onChanged,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     _ActionButton(
                       icon: Icons.add_rounded,
                       color: const Color(0xFF10B981),
@@ -1176,38 +1287,6 @@ class _PrayerCard extends StatelessWidget {
                       tooltip: '1 Kaza Artır',
                     ),
                   ],
-                ),
-              ],
-            ),
-
-            // Hızlı Ekleme Etiketleri (+5, +10, +30)
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  'Kaza Ekle: ',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: isDark ? Colors.grey[500] : Colors.grey[500],
-                  ),
-                ),
-                _QuickChip(
-                  label: '+5',
-                  onTap: () => onQuickAdd(5),
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 5),
-                _QuickChip(
-                  label: '+10',
-                  onTap: () => onQuickAdd(10),
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 5),
-                _QuickChip(
-                  label: '+30',
-                  onTap: () => onQuickAdd(30),
-                  isDark: isDark,
                 ),
               ],
             ),
@@ -1243,12 +1322,12 @@ class _ActionButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(12),
         child: Ink(
-          width: 38,
-          height: 44,
+          width: 40,
+          height: 42,
           decoration: BoxDecoration(
             color: isEnabled
                 ? color.withOpacity(isDark ? 0.18 : 0.12)
-                : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+                : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isEnabled ? color.withOpacity(0.3) : Colors.transparent,
@@ -1288,7 +1367,7 @@ class _QuickChip extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0B1329) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(8),
@@ -1300,7 +1379,7 @@ class _QuickChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: isDark ? Colors.grey[300] : Colors.grey[700],
           ),
