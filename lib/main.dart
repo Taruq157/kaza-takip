@@ -278,15 +278,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text('Konum güncellendi: ${PrayerTimeService.locationName}')),
+              const Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Konum güncellendi: ${PrayerTimeService.locationName}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: const Color(0xFF0F172A),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFF334155), width: 1),
+          ),
         ),
       );
     }
@@ -377,21 +389,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Icon(
                 newVal ? Icons.check_circle_rounded : Icons.info_outline,
-                color: newVal ? Colors.greenAccent : Colors.orangeAccent,
-                size: 20,
+                color: newVal ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                size: 22,
               ),
-              const SizedBox(width: 8),
-              Text(
-                newVal
-                    ? 'Bugünkü $title namazı kılındı olarak işaretlendi.'
-                    : 'Bugünkü $title namazı işareti kaldırıldı.',
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  newVal
+                      ? 'Bugünkü $title namazı kılındı olarak işaretlendi.'
+                      : 'Bugünkü $title namazı işareti kaldırıldı.',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: const Color(0xFF0F172A),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(milliseconds: 1400),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(milliseconds: 1600),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFF334155), width: 1),
+          ),
         ),
       );
     }
@@ -426,9 +448,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     bool hasAny = _counts.values.any((v) => v > 0);
     if (!hasAny) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kılınacak kaza namazı bulunmuyor.'),
+        SnackBar(
+          content: const Text(
+            'Kılınacak kaza namazı bulunmuyor.',
+            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF0F172A),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFF334155), width: 1),
+          ),
         ),
       );
       return;
@@ -452,14 +482,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       SnackBar(
         content: const Row(
           children: [
-            Icon(Icons.done_all_rounded, color: Colors.greenAccent),
+            Icon(Icons.done_all_rounded, color: Color(0xFF10B981), size: 22),
             SizedBox(width: 10),
-            Text('1 günlük tüm kaza namazları düşüldü.'),
+            Expanded(
+              child: Text(
+                '1 günlük tüm kaza namazları düşüldü.',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF334155), width: 1),
+        ),
       ),
     );
   }
@@ -479,10 +517,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('1 günlük kaza namazı tüm vakitlere eklendi.'),
-        backgroundColor: const Color(0xFF1E293B),
+        content: const Row(
+          children: [
+            Icon(Icons.add_circle_outline, color: Color(0xFF10B981), size: 22),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '1 günlük kaza namazı tüm vakitlere eklendi.',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF334155), width: 1),
+        ),
       ),
     );
   }
@@ -518,20 +570,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 22),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       overwrite
                           ? 'Kaza sayaçları hesaplanan değerlerle güncellendi.'
                           : 'Hesaplanan kaza namazları mevcut sayaçlara eklendi.',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
               ),
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: const Color(0xFF0F172A),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFF334155), width: 1),
+              ),
             ),
           );
         },
@@ -763,6 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 child: Column(
                   children: [
+                    // Üst Satır: Toplam Sayı & Cami İkonu
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -789,30 +850,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.timer_outlined, color: Colors.white70, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                _durationEstimate,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          child: const Icon(
+                            Icons.mosque_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+
+                    // Orta Satır: Taşmayan Tam Genişlikli Tahmini Süre Barı
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.timer_outlined, color: Colors.white70, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _durationEstimate,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 12),
+
+                    // Alt Satır: Butonlar
                     Row(
                       children: [
                         Expanded(
