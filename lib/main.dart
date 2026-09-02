@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/daily_tracker_service.dart';
 import 'services/prayer_time_service.dart';
+import 'widgets/kaza_calculator_sheet.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -481,6 +482,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _openKazaCalculator() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => KazaCalculatorSheet(
+        onApply: (calculatedCounts, overwrite) {
+          HapticFeedback.mediumImpact();
+          SoundService.playKazaArtir();
+          setState(() {
+            for (var prayer in _prayers) {
+              final addOrSet = calculatedCounts[prayer.key] ?? 0;
+              if (overwrite) {
+                _counts[prayer.key] = addOrSet;
+                _controllers[prayer.key]?.text = addOrSet.toString();
+                _saveCount(prayer.key, addOrSet);
+              } else {
+                final current = _counts[prayer.key] ?? 0;
+                final newVal = (current + addOrSet).clamp(0, 9999999);
+                _counts[prayer.key] = newVal;
+                _controllers[prayer.key]?.text = newVal.toString();
+                _saveCount(prayer.key, newVal);
+              }
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      overwrite
+                          ? 'Kaza sayaçları hesaplanan değerlerle güncellendi.'
+                          : 'Hesaplanan kaza namazları mevcut sayaçlara eklendi.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF1E293B),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showResetDialog() {
     showDialog(
       context: context,
@@ -611,6 +664,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 onSelected: (value) {
                   if (value == 'reset') {
                     _showResetDialog();
+                  } else if (value == 'calculator') {
+                    _openKazaCalculator();
                   } else if (value == 'add_day') {
                     _addFullDay();
                   } else if (value == 'refresh_location') {
@@ -618,6 +673,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   }
                 },
                 itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'calculator',
+                    child: Row(
+                      children: [
+                        Icon(Icons.calculate_rounded, color: Color(0xFF10B981), size: 20),
+                        SizedBox(width: 8),
+                        Text('Kaza Hesaplayıcı'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'refresh_location',
                     child: Row(
@@ -743,25 +808,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _completeFullDay,
-                        icon: const Icon(Icons.done_all_rounded, size: 18),
-                        label: const Text(
-                          '1 Günlük Kazayı Kıldım (-1 Vakit Hepsi)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF0F766E),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _completeFullDay,
+                            icon: const Icon(Icons.done_all_rounded, size: 17),
+                            label: const Text(
+                              '1 Günlük Düş (-1)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF0F766E),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 1,
+                            ),
                           ),
-                          elevation: 1,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _openKazaCalculator,
+                            icon: const Icon(Icons.calculate_rounded, size: 17),
+                            label: const Text(
+                              'Kaza Hesapla',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.22),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
