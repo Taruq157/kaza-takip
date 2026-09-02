@@ -14,30 +14,38 @@ void main() {
 }
 
 class SoundService {
-  static final AudioPlayer _popPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  static final AudioPlayer _popDownPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  static final AudioPlayer _popSpecialPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  static final AudioPlayer _artirPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  static final AudioPlayer _azaltPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  static final AudioPlayer _tikPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   static bool isMuted = false;
 
-  static void playPop({bool isUp = true, bool isSpecial = false}) {
+  static void playKazaArtir() {
     if (isMuted) return;
     try {
-      if (isSpecial) {
-        _popSpecialPlayer.stop().then((_) => _popSpecialPlayer.play(
-              AssetSource('sounds/pop_special.wav'),
-              mode: PlayerMode.lowLatency,
-            ));
-      } else if (isUp) {
-        _popPlayer.stop().then((_) => _popPlayer.play(
-              AssetSource('sounds/pop.wav'),
-              mode: PlayerMode.lowLatency,
-            ));
-      } else {
-        _popDownPlayer.stop().then((_) => _popDownPlayer.play(
-              AssetSource('sounds/pop_down.wav'),
-              mode: PlayerMode.lowLatency,
-            ));
-      }
+      _artirPlayer.stop().then((_) => _artirPlayer.play(
+            AssetSource('sounds/kaza_artir.mp3'),
+            mode: PlayerMode.lowLatency,
+          ));
+    } catch (_) {}
+  }
+
+  static void playKazaAzalt() {
+    if (isMuted) return;
+    try {
+      _azaltPlayer.stop().then((_) => _azaltPlayer.play(
+            AssetSource('sounds/kaza_azalt.mp3'),
+            mode: PlayerMode.lowLatency,
+          ));
+    } catch (_) {}
+  }
+
+  static void playNamazTik() {
+    if (isMuted) return;
+    try {
+      _tikPlayer.stop().then((_) => _tikPlayer.play(
+            AssetSource('sounds/namaz_tik.mp3'),
+            mode: PlayerMode.lowLatency,
+          ));
     } catch (_) {}
   }
 }
@@ -324,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     await prefs.setBool('sound_muted', _soundMuted);
     if (!_soundMuted) {
-      SoundService.playPop(isUp: true);
+      SoundService.playKazaArtir();
     }
   }
 
@@ -337,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _todayTicks[key] = newVal;
     });
 
-    SoundService.playPop(isUp: newVal, isSpecial: newVal);
+    SoundService.playNamazTik();
     await DailyTrackerService.setTodayTick(key, newVal);
 
     if (mounted) {
@@ -370,7 +378,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _updateCount(String key, int delta) {
     HapticFeedback.lightImpact();
-    SoundService.playPop(isUp: delta > 0);
+    if (delta > 0) {
+      SoundService.playKazaArtir();
+    } else {
+      SoundService.playKazaAzalt();
+    }
     setState(() {
       final current = _counts[key] ?? 0;
       final newVal = (current + delta).clamp(0, 9999999);
@@ -402,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     HapticFeedback.mediumImpact();
-    SoundService.playPop(isSpecial: true);
+    SoundService.playKazaAzalt();
     setState(() {
       for (var prayer in _prayers) {
         final current = _counts[prayer.key] ?? 0;
@@ -433,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _addFullDay() {
     HapticFeedback.mediumImpact();
-    SoundService.playPop(isUp: true);
+    SoundService.playKazaArtir();
     setState(() {
       for (var prayer in _prayers) {
         final current = _counts[prayer.key] ?? 0;
