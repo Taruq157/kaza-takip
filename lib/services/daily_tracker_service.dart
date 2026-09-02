@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'gender_service.dart';
 
 class DailyTransitionResult {
   final bool hasTransitioned;
   final Map<String, int> addedKazalar;
   final int daysMissed;
+  final bool wasExempt;
 
   DailyTransitionResult({
     required this.hasTransitioned,
     required this.addedKazalar,
     required this.daysMissed,
+    this.wasExempt = false,
   });
 
   int get totalAdded => addedKazalar.values.fold(0, (sum, val) => sum + val);
@@ -45,6 +48,7 @@ class DailyTrackerService {
   }
 
   /// Check if the day has transitioned past 02:00 AM and add unticked prayers to kaza counts.
+  /// If the user is female and Special Day (Regl) mode is active, prayers are exempt from kaza debt.
   static Future<DailyTransitionResult> checkAndProcessDailyTransition() async {
     final prefs = await SharedPreferences.getInstance();
     final todayLogical = getLogicalDate();
@@ -79,6 +83,8 @@ class DailyTrackerService {
       lastDate = todayLogical.subtract(const Duration(days: 1));
     }
 
+    final isSpecialExempt = await GenderService.isSpecialDayActive();
+
     final addedKazalar = <String, int>{
       'sabah': 0,
       'ogle': 0,
@@ -102,10 +108,13 @@ class DailyTrackerService {
         } catch (_) {}
       }
 
-      for (final key in prayerKeys) {
-        final isTicked = ticks[key] == true;
-        if (!isTicked) {
-          addedKazalar[key] = (addedKazalar[key] ?? 0) + 1;
+      // Only add to kaza if not in special exemption mode
+      if (!isSpecialExempt) {
+        for (final key in prayerKeys) {
+          final isTicked = ticks[key] == true;
+          if (!isTicked) {
+            addedKazalar[key] = (addedKazalar[key] ?? 0) + 1;
+          }
         }
       }
 
@@ -113,12 +122,14 @@ class DailyTrackerService {
       cursor = cursor.add(const Duration(days: 1));
     }
 
-    // Apply added kazalar to stored kaza counts
-    for (final key in prayerKeys) {
-      final add = addedKazalar[key] ?? 0;
-      if (add > 0) {
-        final currentCount = prefs.getInt('kaza_$key') ?? 0;
-        await prefs.setInt('kaza_$key', currentCount + add);
+    // Apply added kazalar to stored kaza counts if not exempt
+    if (!isSpecialExempt) {
+      for (final key in prayerKeys) {
+        final add = addedKazalar[key] ?? 0;
+        if (add > 0) {
+          final currentCount = prefs.getInt('kaza_$key') ?? 0;
+          await prefs.setInt('kaza_$key', currentCount + add);
+        }
       }
     }
 
@@ -129,6 +140,7 @@ class DailyTrackerService {
       hasTransitioned: true,
       addedKazalar: addedKazalar,
       daysMissed: daysMissed,
+      wasExempt: isSpecialExempt,
     );
   }
 

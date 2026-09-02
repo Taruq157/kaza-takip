@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/daily_tracker_service.dart';
+import 'services/gender_service.dart';
 import 'services/prayer_time_service.dart';
 import 'services/widget_service.dart';
 import 'widgets/kaza_calculator_sheet.dart';
@@ -233,6 +234,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isRefreshingLocation = false;
   bool _soundMuted = false;
+  bool _isFemale = false;
+  bool _isSpecialDayActive = false;
 
   Timer? _tickerTimer;
   PrayerDisplayInfo? _prayerDisplayInfo;
@@ -267,6 +270,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _initApp() async {
     await _loadCounts();
+    await _loadGenderState();
     await PrayerTimeService.initLocation();
     _updatePrayerTimes();
 
@@ -279,6 +283,110 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     await _checkDailyTransition();
     await WidgetService.updateAllWidgets(prayerInfo: _prayerDisplayInfo, ticks: _todayTicks);
+  }
+
+  Future<void> _loadGenderState() async {
+    final isFem = await GenderService.isFemale();
+    final isSpec = await GenderService.isSpecialDayActive();
+    if (mounted) {
+      setState(() {
+        _isFemale = isFem;
+        _isSpecialDayActive = isSpec;
+      });
+    }
+  }
+
+  Future<void> _toggleSpecialDay(bool val) async {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _isSpecialDayActive = val;
+    });
+    await GenderService.setSpecialDayActive(val);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              val ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: val ? const Color(0xFFEC4899) : const Color(0xFF10B981),
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                val
+                    ? 'Özel Gün Modu Açıldı. Kılınmayan namazlar kazaya dönüşmeyecektir.'
+                    : 'Özel Gün Modu Kapatıldı. Günlük namaz takibi devam ediyor.',
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0F172A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF334155), width: 1),
+        ),
+      ),
+    );
+  }
+
+  void _showGenderDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.person_outline_rounded, color: Color(0xFF10B981)),
+            SizedBox(width: 8),
+            Text('Cinsiyet Seçimi'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Kadın kullanıcılarda kaza hesaplamasında ayda 1 hafta (hayız) muafiyeti kaza borcundan düşülür ve ana ekranda Özel Gün butonu gösterilir.',
+              style: TextStyle(fontSize: 12.5, height: 1.35),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.male_rounded, color: Color(0xFF3B82F6), size: 28),
+              title: const Text('Erkek', style: TextStyle(fontWeight: FontWeight.bold)),
+              trailing: !_isFemale ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981)) : null,
+              onTap: () async {
+                await GenderService.setGender('erkek');
+                await _loadGenderState();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+            ),
+            const Divider(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.female_rounded, color: Color(0xFFEC4899), size: 28),
+              title: const Text('Kadın', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Özel gün (hayız) muafiyetleri aktifleşir', style: TextStyle(fontSize: 11)),
+              trailing: _isFemale ? const Icon(Icons.check_circle_rounded, color: Color(0xFFEC4899)) : null,
+              onTap: () async {
+                await GenderService.setGender('kadin');
+                await _loadGenderState();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _updatePrayerTimes() {
@@ -573,6 +681,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => KazaCalculatorSheet(
+        onGenderChanged: _loadGenderState,
         onApply: (calculatedCounts, overwrite) {
           HapticFeedback.mediumImpact();
           SoundService.playKazaArtir();
@@ -680,137 +789,146 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     List<String> parts = [];
     if (years > 0) parts.add('$years Yıl');
     if (months > 0) parts.add('$months Ay');
-    if (days > 0 || parts.isEmpty) parts.add('$days Gün');
+    if (days > 0) parts.add('$days Gün');
 
-    return 'Yaklaşık ${parts.join(' ')} (${totalDays.toString()} gün)';
+    return 'Yaklaşık Süre: ${parts.isEmpty ? '1 Gün' : parts.join(' ')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
+    final isDark = widget.isDarkMode;
     final displayInfo = _prayerDisplayInfo ?? PrayerTimeService.calculatePrayerTimes();
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Modern Compact App Bar
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: isDark ? const Color(0xFF0B1329) : Colors.white,
-            surfaceTintColor: Colors.transparent,
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.mosque_rounded,
-                    color: Color(0xFF10B981),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Kaza Takipçisi',
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                tooltip: _soundMuted ? 'Sesi Aç' : 'Sesi Kapat',
-                icon: Icon(
-                  _soundMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                  color: _soundMuted ? Colors.grey : const Color(0xFF10B981),
-                ),
-                onPressed: _toggleSound,
-              ),
-              IconButton(
-                tooltip: 'Tema Değiştir',
-                icon: Icon(
-                  widget.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                ),
-                onPressed: widget.onToggleTheme,
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                onSelected: (value) {
-                  if (value == 'reset') {
-                    _showResetDialog();
-                  } else if (value == 'calculator') {
-                    _openKazaCalculator();
-                  } else if (value == 'add_day') {
-                    _addFullDay();
-                  } else if (value == 'refresh_location') {
-                    _refreshLocation();
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(
-                    value: 'calculator',
-                    child: Row(
-                      children: [
-                        Icon(Icons.calculate_rounded, color: Color(0xFF10B981), size: 20),
-                        SizedBox(width: 8),
-                        Text('Kaza Hesaplayıcı'),
-                      ],
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Modern Custom App Bar
+            SliverAppBar(
+              floating: true,
+              pinned: false,
+              snap: true,
+              backgroundColor: isDark ? const Color(0xFF0B1329) : const Color(0xFFF8FAFC),
+              elevation: 0,
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.mosque_rounded,
+                      color: Color(0xFF10B981),
+                      size: 20,
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'refresh_location',
-                    child: Row(
-                      children: [
-                        Icon(Icons.my_location_rounded, size: 20),
-                        SizedBox(width: 8),
-                        Text('Konumu Yenile'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'add_day',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add_circle_outline, size: 20),
-                        SizedBox(width: 8),
-                        Text('Tümüne 1 Gün Ekle'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'reset',
-                    child: Row(
-                      children: [
-                        Icon(Icons.restart_alt_rounded, color: Colors.redAccent, size: 20),
-                        SizedBox(width: 8),
-                        Text('Tümünü Sıfırla', style: TextStyle(color: Colors.redAccent)),
-                      ],
+                  const SizedBox(width: 10),
+                  Text(
+                    'Kaza Takipçisi',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 4),
-            ],
-          ),
+              actions: [
+                IconButton(
+                  tooltip: _soundMuted ? 'Sesi Aç' : 'Sesi Kapat',
+                  icon: Icon(
+                    _soundMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    color: _soundMuted ? Colors.grey : const Color(0xFF10B981),
+                  ),
+                  onPressed: _toggleSound,
+                ),
+                IconButton(
+                  tooltip: 'Tema Değiştir',
+                  icon: Icon(
+                    widget.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  ),
+                  onPressed: widget.onToggleTheme,
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  onSelected: (value) {
+                    if (value == 'reset') {
+                      _showResetDialog();
+                    } else if (value == 'calculator') {
+                      _openKazaCalculator();
+                    } else if (value == 'gender') {
+                      _showGenderDialog();
+                    } else if (value == 'add_day') {
+                      _addFullDay();
+                    } else if (value == 'refresh_location') {
+                      _refreshLocation();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'calculator',
+                      child: Row(
+                        children: [
+                          Icon(Icons.calculate_rounded, color: Color(0xFF10B981), size: 20),
+                          SizedBox(width: 8),
+                          Text('Kaza Hesaplayıcı'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'gender',
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isFemale ? Icons.female_rounded : Icons.male_rounded,
+                            color: _isFemale ? const Color(0xFFEC4899) : const Color(0xFF3B82F6),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_isFemale ? 'Cinsiyet: Kadın' : 'Cinsiyet: Erkek'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'refresh_location',
+                      child: Row(
+                        children: [
+                          Icon(Icons.my_location_rounded, size: 20),
+                          SizedBox(width: 8),
+                          Text('Konumu Yenile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'add_day',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_circle_outline, size: 20),
+                          SizedBox(width: 8),
+                          Text('Tümüne 1 Gün Ekle'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'reset',
+                      child: Row(
+                        children: [
+                          Icon(Icons.restart_alt_rounded, color: Colors.redAccent, size: 20),
+                          SizedBox(width: 8),
+                          Text('Tümünü Sıfırla', style: TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
 
           // 1. Canlı Namaz Vakitleri & Konum Kutusu (Yenileme Butonlu)
           SliverToBoxAdapter(
@@ -971,6 +1089,81 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
+          // Kadın Kullanıcılar İçin Özel Gün (Regl / Hayız) Muafiyet Kartı
+          if (_isFemale)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _isSpecialDayActive
+                        ? (isDark ? const Color(0xFF831843).withOpacity(0.35) : const Color(0xFFFDF2F8))
+                        : (isDark ? const Color(0xFF1E293B).withOpacity(0.7) : const Color(0xFFF8FAFC)),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _isSpecialDayActive
+                          ? const Color(0xFFEC4899)
+                          : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      width: _isSpecialDayActive ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEC4899).withOpacity(isDark ? 0.25 : 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isSpecialDayActive ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: const Color(0xFFEC4899),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isSpecialDayActive ? '🌸 Özel Gün (Hayız) Modu Açık' : '🌸 Özel Gün (Hayız) Modu',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _isSpecialDayActive
+                                    ? const Color(0xFFEC4899)
+                                    : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _isSpecialDayActive
+                                  ? 'Kılınmayan namazlar kaza borcuna eklenmez (Muafsınız).'
+                                  : 'Regl döneminde açarak namazların kazaya dönüşmesini durdurabilirsiniz.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.25,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Switch(
+                        value: _isSpecialDayActive,
+                        activeColor: const Color(0xFFEC4899),
+                        activeTrackColor: const Color(0xFFEC4899).withOpacity(0.3),
+                        onChanged: (val) => _toggleSpecialDay(val),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // 3. Bilgilendirme Rozeti (02:00 Kuralı)
           SliverToBoxAdapter(
             child: Padding(
@@ -1023,11 +1216,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const Spacer(),
                   Text(
-                    'Tik: Bugün Kılındı',
+                    _isFemale && _isSpecialDayActive ? '🌸 Özel Gün: Muaf' : 'Tik: Bugün Kılındı',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF10B981),
+                      color: _isFemale && _isSpecialDayActive ? const Color(0xFFEC4899) : const Color(0xFF10B981),
                     ),
                   ),
                 ],
@@ -1050,6 +1243,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     prayer: prayer,
                     count: count,
                     isTicked: isTicked,
+                    isSpecialExempt: _isFemale && _isSpecialDayActive,
                     controller: controller,
                     isDark: isDark,
                     onToggleTick: () => _toggleDailyTick(prayer.key, prayer.title),
@@ -1072,6 +1266,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -1291,6 +1486,7 @@ class _PrayerCard extends StatelessWidget {
   final PrayerInfo prayer;
   final int count;
   final bool isTicked;
+  final bool isSpecialExempt;
   final TextEditingController controller;
   final bool isDark;
   final VoidCallback onToggleTick;
@@ -1303,6 +1499,7 @@ class _PrayerCard extends StatelessWidget {
     required this.prayer,
     required this.count,
     required this.isTicked,
+    this.isSpecialExempt = false,
     required this.controller,
     required this.isDark,
     required this.onToggleTick,
@@ -1323,14 +1520,18 @@ class _PrayerCard extends StatelessWidget {
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isTicked ? const Color(0xFF10B981).withOpacity(0.7) : borderColor,
-          width: isTicked ? 1.5 : 1,
+          color: isSpecialExempt
+              ? const Color(0xFFEC4899).withOpacity(0.5)
+              : (isTicked ? const Color(0xFF10B981).withOpacity(0.7) : borderColor),
+          width: (isSpecialExempt || isTicked) ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: isTicked
-                ? const Color(0xFF10B981).withOpacity(isDark ? 0.15 : 0.08)
-                : Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            color: isSpecialExempt
+                ? const Color(0xFFEC4899).withOpacity(isDark ? 0.12 : 0.06)
+                : (isTicked
+                    ? const Color(0xFF10B981).withOpacity(isDark ? 0.15 : 0.08)
+                    : Colors.black.withOpacity(isDark ? 0.2 : 0.03)),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1340,7 +1541,7 @@ class _PrayerCard extends StatelessWidget {
         padding: const EdgeInsets.all(14.0),
         child: Column(
           children: [
-            // 1. ÜST SATIR: Vakit Başlığı (Sol) + Günlük Namaz Tiki (Sağ Üst - Kırmızı İşaretli Yer)
+            // 1. ÜST SATIR: Vakit Başlığı (Sol) + Günlük Namaz Tiki (Sağ Üst)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1384,41 +1585,69 @@ class _PrayerCard extends StatelessWidget {
                   ],
                 ),
 
-                // Sağ Üst: Günlük Namaz Tiki (Bugün yazısı kaldırıldı, tam daire estetik tik butonu)
-                InkWell(
-                  onTap: onToggleTick,
-                  borderRadius: BorderRadius.circular(20),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.all(6),
+                // Sağ Üst: Günlük Namaz Tiki veya Özel Gün Muafiyet Rozeti
+                if (isSpecialExempt)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isTicked
-                          ? const Color(0xFF10B981)
-                          : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                      shape: BoxShape.circle,
+                      color: const Color(0xFFEC4899).withOpacity(isDark ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
+                        color: const Color(0xFFEC4899).withOpacity(0.4),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.favorite_rounded, color: Color(0xFFEC4899), size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'Muaf',
+                          style: TextStyle(
+                            color: Color(0xFFEC4899),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  InkWell(
+                    onTap: onToggleTick,
+                    borderRadius: BorderRadius.circular(20),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
                         color: isTicked
                             ? const Color(0xFF10B981)
-                            : (isDark ? const Color(0xFF3B4D71) : const Color(0xFFCBD5E1)),
-                        width: 1.5,
+                            : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isTicked
+                              ? const Color(0xFF10B981)
+                              : (isDark ? const Color(0xFF3B4D71) : const Color(0xFFCBD5E1)),
+                          width: 1.5,
+                        ),
+                        boxShadow: isTicked
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [],
                       ),
-                      boxShadow: isTicked
-                          ? [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withOpacity(0.4),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              )
-                            ]
-                          : [],
-                    ),
-                    child: Icon(
-                      isTicked ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
-                      color: isTicked ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                      size: 22,
+                      child: Icon(
+                        isTicked ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+                        color: isTicked ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                        size: 22,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
 

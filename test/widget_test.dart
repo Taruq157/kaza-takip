@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kaza_sayici/main.dart';
 import 'package:kaza_sayici/services/daily_tracker_service.dart';
+import 'package:kaza_sayici/services/gender_service.dart';
 import 'package:kaza_sayici/services/kaza_calculator_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,24 +41,57 @@ void main() {
     expect(logicalMorning.day, 2);
   });
 
-  test('KazaCalculatorService computes kaza debt correctly', () {
+  test('KazaCalculatorService computes male and female kaza debt correctly', () {
     final bulug = DateTime(2020, 1, 1);
-    final current = DateTime(2025, 1, 1); // Exactly 5 years = 1827 days (including leap)
+    final current = DateTime(2025, 1, 1); // 1827 days
 
-    // Prayed 2 years, 0 months, 0 days
-    final result = KazaCalculatorService.calculate(
+    // Male calculation (no exemption)
+    final maleResult = KazaCalculatorService.calculate(
       bulugDate: bulug,
       currentDate: current,
       prayedYears: 2,
       prayedMonths: 0,
       prayedDays: 0,
+      isFemale: false,
     );
 
-    expect(result.totalObligatedDays, 1827);
-    expect(result.totalPrayedDays, 730);
-    expect(result.kazaDays, 1097);
-    expect(result.vakitKazalari['sabah'], 1097);
-    expect(result.vakitKazalari['vitir'], 1097);
-    expect(result.totalKazalar, 1097 * 6);
+    expect(maleResult.totalObligatedDays, 1827);
+    expect(maleResult.totalPrayedDays, 730);
+    expect(maleResult.exemptDays, 0);
+    expect(maleResult.kazaDays, 1097);
+    expect(maleResult.totalKazalar, 1097 * 6);
+
+    // Female calculation (25% exemption from unprayed days: 1097 ~/ 4 = 274 days exempt)
+    final femaleResult = KazaCalculatorService.calculate(
+      bulugDate: bulug,
+      currentDate: current,
+      prayedYears: 2,
+      prayedMonths: 0,
+      prayedDays: 0,
+      isFemale: true,
+    );
+
+    expect(femaleResult.totalObligatedDays, 1827);
+    expect(femaleResult.totalPrayedDays, 730);
+    expect(femaleResult.exemptDays, 274);
+    expect(femaleResult.kazaDays, 1097 - 274); // 823 days
+    expect(femaleResult.totalKazalar, 823 * 6);
+  });
+
+  test('GenderService and Special Day mode persistence', () async {
+    SharedPreferences.setMockInitialValues({});
+
+    expect(await GenderService.getGender(), 'erkek');
+    expect(await GenderService.isFemale(), false);
+    expect(await GenderService.isSpecialDayActive(), false);
+
+    await GenderService.setGender('kadin');
+    expect(await GenderService.isFemale(), true);
+
+    await GenderService.setSpecialDayActive(true);
+    expect(await GenderService.isSpecialDayActive(), true);
+
+    await GenderService.setSpecialDayActive(false);
+    expect(await GenderService.isSpecialDayActive(), false);
   });
 }

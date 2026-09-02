@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
+import '../services/gender_service.dart';
 import '../services/kaza_calculator_service.dart';
 
 class KazaCalculatorSheet extends StatefulWidget {
   final Function(Map<String, int> calculatedCounts, bool overwrite) onApply;
+  final VoidCallback? onGenderChanged;
 
   const KazaCalculatorSheet({
     super.key,
     required this.onApply,
+    this.onGenderChanged,
   });
 
   @override
@@ -22,10 +24,26 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
   int _prayedYears = 0;
   int _prayedMonths = 0;
   int _prayedDays = 0;
+  bool _isFemale = false;
 
   final TextEditingController _yearsController = TextEditingController(text: '0');
   final TextEditingController _monthsController = TextEditingController(text: '0');
   final TextEditingController _daysController = TextEditingController(text: '0');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGender();
+  }
+
+  Future<void> _loadGender() async {
+    final isFem = await GenderService.isFemale();
+    if (mounted) {
+      setState(() {
+        _isFemale = isFem;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -41,6 +59,7 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
       prayedYears: _prayedYears,
       prayedMonths: _prayedMonths,
       prayedDays: _prayedDays,
+      isFemale: _isFemale,
     );
   }
 
@@ -72,19 +91,27 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              widget.onApply(result.vakitKazalari, false); // Add to current
+            onPressed: () async {
+              await GenderService.setGender(_isFemale ? 'kadin' : 'erkek');
+              widget.onGenderChanged?.call();
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+                widget.onApply(result.vakitKazalari, false); // Add to current
+              }
             },
             child: const Text('Mevcut Kazalara Ekle'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              widget.onApply(result.vakitKazalari, true); // Overwrite
+            onPressed: () async {
+              await GenderService.setGender(_isFemale ? 'kadin' : 'erkek');
+              widget.onGenderChanged?.call();
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+                widget.onApply(result.vakitKazalari, true); // Overwrite
+              }
             },
             child: const Text('Sayaçları Güncelle'),
           ),
@@ -165,7 +192,7 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
                         ),
                       ),
                       Text(
-                        'Ergenlik ve kılınan süreye göre kaza borcu hesabı',
+                        'Ergenlik, cinsiyet ve kılınan süreye göre hesaplama',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -176,6 +203,147 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 20),
+
+            // Cinsiyet Seçimi (Erkek / Kadın)
+            Text(
+              'CİNSİYET SEÇİMİ',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isFemale = false;
+                        });
+                        GenderService.setGender('erkek');
+                        widget.onGenderChanged?.call();
+                      },
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(15)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_isFemale
+                              ? (isDark ? const Color(0xFF2563EB) : const Color(0xFF3B82F6))
+                              : Colors.transparent,
+                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(15)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.male_rounded,
+                              size: 20,
+                              color: !_isFemale ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Erkek',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: !_isFemale ? Colors.white : (isDark ? Colors.grey[300] : Colors.grey[700]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isFemale = true;
+                        });
+                        GenderService.setGender('kadin');
+                        widget.onGenderChanged?.call();
+                      },
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(15)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _isFemale
+                              ? const Color(0xFFEC4899)
+                              : Colors.transparent,
+                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(15)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.female_rounded,
+                              size: 20,
+                              color: _isFemale ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Kadın',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _isFemale ? Colors.white : (isDark ? Colors.grey[300] : Colors.grey[700]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (_isFemale) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEC4899).withOpacity(isDark ? 0.12 : 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFEC4899).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.favorite_rounded, color: Color(0xFFEC4899), size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Kadınlarda her 4 haftanın 1 haftası (ayda ~7 gün / %25) özel gün (hayız) kabul edilerek kaza borcundan muaf tutulur ve otomatik olarak düşülür.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.35,
+                          color: isDark ? const Color(0xFFFBCFE8) : const Color(0xFF9D174D),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             const SizedBox(height: 20),
 
@@ -219,7 +387,7 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
                             ),
                           ),
                           Text(
-                            'Toplam Mükellefiyet: ${result.totalObligatedDays} gün (~${(result.totalObligatedDays / 365).toStringAsFixed(1)} yıl)',
+                            'Toplam Süre: ${result.totalObligatedDays} gün (~${(result.totalObligatedDays / 365).toStringAsFixed(1)} yıl)',
                             style: TextStyle(
                               fontSize: 11.5,
                               color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -347,11 +515,31 @@ class _KazaCalculatorSheetState extends State<KazaCalculatorSheet> {
               ),
               child: Column(
                 children: [
+                  if (_isFemale && result.exemptDays > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Özel Gün (Hayız) Muafiyeti:',
+                          style: TextStyle(color: Color(0xFFFBCFE8), fontSize: 12),
+                        ),
+                        Text(
+                          '- ${result.exemptDays} Gün',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFFFBCFE8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: Colors.white24, height: 14),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Hesaplanan Kaza Borcu (Gün)',
+                        'Net Kaza Borcu (Gün)',
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       Text(
