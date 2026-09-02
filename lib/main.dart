@@ -17,6 +17,7 @@ class SoundService {
   static final AudioPlayer _artirPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   static final AudioPlayer _azaltPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   static final AudioPlayer _tikPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+  static final AudioPlayer _tikGeriPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
   static bool isMuted = false;
 
   static void playKazaArtir() {
@@ -44,6 +45,16 @@ class SoundService {
     try {
       _tikPlayer.stop().then((_) => _tikPlayer.play(
             AssetSource('sounds/namaz_tik.mp3'),
+            mode: PlayerMode.lowLatency,
+          ));
+    } catch (_) {}
+  }
+
+  static void playNamazTikGeri() {
+    if (isMuted) return;
+    try {
+      _tikGeriPlayer.stop().then((_) => _tikGeriPlayer.play(
+            AssetSource('sounds/namaz_tik_geri.mp3'),
             mode: PlayerMode.lowLatency,
           ));
     } catch (_) {}
@@ -345,7 +356,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _todayTicks[key] = newVal;
     });
 
-    SoundService.playNamazTik();
+    if (newVal) {
+      SoundService.playNamazTik();
+    } else {
+      SoundService.playNamazTikGeri();
+    }
     await DailyTrackerService.setTodayTick(key, newVal);
 
     if (mounted) {
