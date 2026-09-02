@@ -5,63 +5,77 @@
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="12dp"
+    android:paddingLeft="14dp"
+    android:paddingRight="14dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
     android:background="@drawable/widget_bg">
 
-    <!-- Sol Bölüm: Vakit Bilgisi & Durum -->
+    <!-- Sol İkon Kutusu (Uygulama İçi Kartla Birebir) -->
+    <LinearLayout
+        android:id="@+id/layout_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/widget_pill_bg"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_prayer_emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🕌"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <!-- Orta Bölüm: Vakit Başlığı ve Rekat Bilgisi -->
     <LinearLayout
         android:id="@+id/layout_info"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="8dp"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/widget_active_prayer_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Öğle Namazı"
+            android:text="Öğle"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/widget_active_prayer_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Kılınmadı (Tikleyin)"
-            android:textColor="#F59E0B"
-            android:textSize="11.5sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_active_prayer_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_marginTop="1dp"
-            android:text="13:05 • Kaza Takipçisi"
+            android:text="4 Rekât Farz • Kılınmadı"
             android:textColor="#94A3B8"
-            android:textSize="10sp" />
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
     </LinearLayout>
 
-    <!-- Sağ Bölüm: İnteraktif Tikleme Butonu -->
+    <!-- Sağ Bölüm: Uygulamayla Birebir Dairesel Tik Butonu -->
     <FrameLayout
         android:id="@+id/btn_toggle_tick"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/widget_tick_off"
-        android:gravity="center">
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="@drawable/widget_tick_off">
 
         <TextView
             android:id="@+id/widget_tick_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="✓"
+            android:text=""
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
     </FrameLayout>
 </LinearLayout>

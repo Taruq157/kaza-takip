@@ -50,6 +50,23 @@ class WidgetService {
     return 'ogle';
   }
 
+  static Map<String, String> _getPrayerMeta(String key) {
+    switch (key) {
+      case 'sabah':
+        return {'title': 'Sabah', 'subtitle': '2 Rekât Farz', 'emoji': '🌅'};
+      case 'ogle':
+        return {'title': 'Öğle', 'subtitle': '4 Rekât Farz', 'emoji': '☀️'};
+      case 'ikindi':
+        return {'title': 'İkindi', 'subtitle': '4 Rekât Farz', 'emoji': '🌤️'};
+      case 'aksam':
+        return {'title': 'Akşam', 'subtitle': '3 Rekât Farz', 'emoji': '🌇'};
+      case 'yatsi':
+        return {'title': 'Yatsı', 'subtitle': '4 Rekât Farz', 'emoji': '🌙'};
+      default:
+        return {'title': 'Öğle', 'subtitle': '4 Rekât Farz', 'emoji': '🕌'};
+    }
+  }
+
   static Future<void> updateAllWidgets({
     PrayerDisplayInfo? prayerInfo,
     Map<String, bool>? ticks,
@@ -61,13 +78,14 @@ class WidgetService {
       final activeVakitKey = _mapCurrentToVakitKey(info.currentPrayerTitle);
       final activeDailyPrayerKey = _mapCurrentToDailyPrayerKey(info.currentPrayerTitle);
       final isTicked = todayTicks[activeDailyPrayerKey] ?? false;
+      final meta = _getPrayerMeta(activeDailyPrayerKey);
 
       // Extract times from timeline
-      String timeImsak = '04:50';
-      String timeGunes = '06:20';
+      String timeImsak = '04:52';
+      String timeGunes = '06:21';
       String timeOgle = '13:05';
-      String timeIkindi = '17:40';
-      String timeAksam = '19:40';
+      String timeIkindi = '17:41';
+      String timeAksam = '19:39';
       String timeYatsi = '21:05';
 
       for (final item in info.timeline) {
@@ -81,7 +99,7 @@ class WidgetService {
 
       // 1. Data for 4x2 Prayer Times Widget
       await HomeWidget.saveWidgetData<String>('widget_location_name', PrayerTimeService.locationName);
-      await HomeWidget.saveWidgetData<String>('widget_current_prayer', 'Şu an: ${info.currentPrayerTitle}');
+      await HomeWidget.saveWidgetData<String>('widget_current_prayer', 'Şu an: ${info.currentPrayerTitle} Vakti');
       await HomeWidget.saveWidgetData<String>('widget_countdown_title', '${info.nextPrayerTitle}\'e Kalan');
       await HomeWidget.saveWidgetData<String>('widget_countdown_time', info.timeRemainingString);
 
@@ -95,8 +113,9 @@ class WidgetService {
 
       // 2. Data for 2x1 Current Prayer Tick Widget
       await HomeWidget.saveWidgetData<String>('active_prayer_key', activeDailyPrayerKey);
-      await HomeWidget.saveWidgetData<String>('active_prayer_name', '${info.currentPrayerTitle} Namazı');
-      await HomeWidget.saveWidgetData<String>('active_prayer_time', '${PrayerTimeService.locationName} • Kaza Takipçisi');
+      await HomeWidget.saveWidgetData<String>('active_prayer_name', meta['title'] ?? 'Öğle');
+      await HomeWidget.saveWidgetData<String>('active_prayer_subtitle', meta['subtitle'] ?? '4 Rekât Farz');
+      await HomeWidget.saveWidgetData<String>('active_prayer_emoji', meta['emoji'] ?? '🕌');
       await HomeWidget.saveWidgetData<bool>('active_prayer_ticked', isTicked);
 
       // Trigger Widget updates

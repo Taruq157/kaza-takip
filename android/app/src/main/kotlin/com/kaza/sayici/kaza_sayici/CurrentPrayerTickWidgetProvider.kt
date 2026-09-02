@@ -18,7 +18,8 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences
     ) {
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.current_prayer_tick_widget).apply {
+            try {
+                val views = RemoteViews(context.packageName, R.layout.current_prayer_tick_widget)
                 val intent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
@@ -28,35 +29,40 @@ class CurrentPrayerTickWidgetProvider : HomeWidgetProvider() {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.layout_info, pendingIntent)
+                views.setOnClickPendingIntent(R.id.layout_info, pendingIntent)
+                views.setOnClickPendingIntent(R.id.layout_icon, pendingIntent)
 
-                val activePrayerName = widgetData.getString("active_prayer_name", "Öğle Namazı") ?: "Öğle Namazı"
-                val activePrayerTime = widgetData.getString("active_prayer_time", "13:05 • Kaza Takipçisi") ?: "13:05 • Kaza Takipçisi"
+                val activePrayerName = widgetData.getString("active_prayer_name", "Öğle") ?: "Öğle"
+                val activePrayerSubtitle = widgetData.getString("active_prayer_subtitle", "4 Rekât Farz • Kaza Takipçisi") ?: "4 Rekât Farz • Kaza Takipçisi"
+                val activeEmoji = widgetData.getString("active_prayer_emoji", "☀️") ?: "☀️"
                 val isTicked = widgetData.getBoolean("active_prayer_ticked", false)
                 val activeKey = widgetData.getString("active_prayer_key", "ogle") ?: "ogle"
 
-                setTextViewText(R.id.widget_active_prayer_name, activePrayerName)
-                setTextViewText(R.id.widget_active_prayer_time, activePrayerTime)
+                views.setTextViewText(R.id.widget_active_prayer_name, activePrayerName)
+                views.setTextViewText(R.id.widget_prayer_emoji, activeEmoji)
 
                 if (isTicked) {
-                    setTextViewText(R.id.widget_active_prayer_status, "Kılındı ✓")
-                    setTextColor(R.id.widget_active_prayer_status, 0xFF10B981.toInt())
-                    setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_on)
-                    setTextViewText(R.id.widget_tick_text, "✓")
+                    views.setTextViewText(R.id.widget_active_prayer_status, "Bugün Kılındı ✓")
+                    views.setTextColor(R.id.widget_active_prayer_status, 0xFF10B981.toInt())
+                    views.setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_on)
+                    views.setTextViewText(R.id.widget_tick_text, "✓")
                 } else {
-                    setTextViewText(R.id.widget_active_prayer_status, "Kılınmadı (Tikleyin)")
-                    setTextColor(R.id.widget_active_prayer_status, 0xFFF59E0B.toInt())
-                    setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_off)
-                    setTextViewText(R.id.widget_tick_text, "✓")
+                    views.setTextViewText(R.id.widget_active_prayer_status, activePrayerSubtitle)
+                    views.setTextColor(R.id.widget_active_prayer_status, 0xFF94A3B8.toInt())
+                    views.setInt(R.id.btn_toggle_tick, "setBackgroundResource", R.drawable.widget_tick_off)
+                    views.setTextViewText(R.id.widget_tick_text, "")
                 }
 
                 val backgroundIntent = HomeWidgetBackgroundIntent.getBroadcast(
                     context,
                     Uri.parse("kazatakip://toggleTick?key=$activeKey")
                 )
-                setOnClickPendingIntent(R.id.btn_toggle_tick, backgroundIntent)
+                views.setOnClickPendingIntent(R.id.btn_toggle_tick, backgroundIntent)
+
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }
 }
